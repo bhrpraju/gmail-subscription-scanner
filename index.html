@@ -2,34 +2,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>📬 Gmail Subscription Scanner</title>
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script>
-    const CLIENT_ID = "802518038033-c7ovg2vfmcuutcup44phb1qnc87fvkob.apps.googleusercontent.com";
-    const SCOPES = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
-
-    function authenticate(callback) {
-      gapi.load("client:auth2", () => {
-        gapi.auth2.init({ client_id: CLIENT_ID }).then(() => {
-          gapi.auth2.getAuthInstance().signIn().then(() => {
-            gapi.client.load("gmail", "v1").then(callback);
-          });
-        });
-      });
-    }
-
-    function onSignInClick() {
-      authenticate(() => {
-        document.getElementById("status").innerText = "✅ Signed in! Now scanning your inbox...";
-        // Additional scan logic would go here
-      });
-    }
-  </script>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-<body style="font-family: sans-serif; text-align: center; margin-top: 100px;">
+<body>
   <h1>📬 Gmail Subscription Scanner</h1>
-  <button onclick="onSignInClick()" style="padding: 10px 20px; font-size: 16px;">Sign in with Google</button>
-  <p id="status" style="margin-top: 20px;"></p>
+  <button id="signin-button">Sign in with Google</button>
+  <div id="filter-container">
+    <input type="text" id="filterInput" placeholder="Search service or category..." />
+    <button id="exportCsv">Export CSV</button>
+  </div>
+  <table id="subscriptionTable">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Category</th>
+        <th>Currency</th>
+        <th>Amount</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3"><strong>Total Monthly Cost:</strong></td>
+        <td id="totalCost" colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script src="app.js"></script>
 </body>
 </html>
