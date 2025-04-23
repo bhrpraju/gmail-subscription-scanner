@@ -1,97 +1,70 @@
-let subscriptions = []; // Will hold parsed email data
+
+const CLIENT_ID = "802518038033-c7ovg2vfmcuutcup44phb1qnc87fvkob.apps.googleusercontent.com";
+let tokenClient;
+let accessToken;
 
 function signIn() {
-  alert("Google OAuth sign-in placeholder. Use your token client logic here.");
-  // In real app, replace this with OAuth logic and call fetchSubscriptions(token);
-  fetchMockData(); // temp
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/gmail.readonly',
+    callback: (tokenResponse) => {
+      if (tokenResponse.access_token) {
+        accessToken = tokenResponse.access_token;
+        document.getElementById("login-section").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        fetchSubscriptions();
+      }
+    },
+  });
+  tokenClient.requestAccessToken();
 }
 
-function fetchMockData() {
-  subscriptions = [
-    { service: "Netflix", amount: 499, currency: "₹", category: "Entertainment", tag: "", notes: "", status: "Active" },
-    { service: "Spotify", amount: 119, currency: "₹", category: "Entertainment", tag: "", notes: "", status: "Inactive" },
-    { service: "Notion Pro", amount: 500, currency: "₹", category: "Productivity", tag: "", notes: "", status: "Active" },
-    { service: "YouTube Premium", amount: 129, currency: "₹", category: "Entertainment", tag: "", notes: "", status: "Duplicate" },
-  ];
-  renderDashboard();
+function fetchSubscriptions() {
+  const headers = new Headers({ Authorization: `Bearer ${accessToken}` });
+  const now = new Date();
+  const pastDate = new Date(now.setMonth(now.getMonth() - 24));
+  const after = Math.floor(pastDate.getTime() / 1000);
+  const query = `after:${after} subject:(receipt OR subscription OR invoice)`;
+  fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`, { headers })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.messages) return;
+      const promises = data.messages.slice(0, 20).map(msg =>
+        fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`, { headers })
+          .then(res => res.json())
+      );
+      Promise.all(promises).then(renderResults);
+    });
 }
 
-function renderDashboard() {
-  document.getElementById("dashboard").style.display = "block";
-  const tbody = document.querySelector("#subscription-table tbody");
+function renderResults(messages) {
+  const tbody = document.querySelector("#subscriptionTable tbody");
   tbody.innerHTML = "";
   let total = 0;
-  const categoryTotals = {};
-
-  subscriptions.forEach((s, i) => {
-    total += parseFloat(s.amount);
-    categoryTotals[s.category] = (categoryTotals[s.category] || 0) + s.amount;
-    tbody.innerHTML += `<tr>
-      <td>${s.service}</td>
-      <td>${s.amount}</td>
-      <td>${s.currency}</td>
-      <td>${s.category}</td>
-      <td><input value="${s.tag}" onchange="updateField(${i}, 'tag', this.value)"></td>
-      <td><input value="${s.notes}" onchange="updateField(${i}, 'notes', this.value)"></td>
-      <td>${s.status}</td>
-      <td><button onclick="deleteRow(${i})">❌</button></td>
-    </tr>`;
+  messages.forEach(msg => {
+    const snippet = msg.snippet || "";
+    const match = snippet.match(/([\w\s]{2,40})(₹|\$|€)([\d,.]+)/);
+    if (match) {
+      const [ , service, currency, amount ] = match;
+      const date = new Date(parseInt(msg.internalDate)).toLocaleDateString();
+      const amt = parseFloat(amount.replace(/,/g, ''));
+      total += amt;
+      const row = `<tr><td>${service.trim()}</td><td>${currency}</td><td>${amt.toFixed(2)}</td><td>${date}</td></tr>`;
+      tbody.insertAdjacentHTML("beforeend", row);
+    }
   });
-
-  document.getElementById("total-cost").textContent = "₹" + total.toFixed(2);
-
-  const sorted = [...subscriptions].sort((a,b)=>b.amount-a.amount).slice(0,3);
-  document.getElementById("top-services").innerHTML = sorted.map(s=>`<li>${s.service} - ₹${s.amount}</li>`).join("");
-
-  drawBarChart(categoryTotals);
-}
-
-function updateField(index, field, value) {
-  subscriptions[index][field] = value;
-}
-
-function deleteRow(index) {
-  subscriptions.splice(index, 1);
-  renderDashboard();
-}
-
-function filterTable() {
-  const filter = document.getElementById("filter").value.toLowerCase();
-  const rows = document.querySelectorAll("#subscription-table tbody tr");
-  rows.forEach(row => {
-    const service = row.children[0].textContent.toLowerCase();
-    row.style.display = service.includes(filter) ? "" : "none";
-  });
+  document.getElementById("totalCost").innerText = `Total: ₹${total.toFixed(2)}`;
 }
 
 function exportToCSV() {
-  let csv = "Service,Amount,Currency,Category,Tag,Notes,Status\n";
-  subscriptions.forEach(s => {
-    csv += `${s.service},${s.amount},${s.currency},${s.category},${s.tag},${s.notes},${s.status}\n`;
+  let csv = "Service,Currency,Amount,Date\n";
+  document.querySelectorAll("#subscriptionTable tbody tr").forEach(row => {
+    const cells = Array.from(row.querySelectorAll("td")).map(td => td.textContent);
+    csv += cells.join(",") + "\n";
   });
   const blob = new Blob([csv], { type: "text/csv" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = "subscriptions.csv";
   link.click();
-}
-
-function drawBarChart(data) {
-  const canvas = document.getElementById("category-chart");
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const categories = Object.keys(data);
-  const values = Object.values(data);
-  const max = Math.max(...values);
-  const barWidth = 40;
-  const spacing = 60;
-
-  categories.forEach((cat, i) => {
-    const barHeight = (values[i] / max) * 150;
-    ctx.fillStyle = "#4caf50";
-    ctx.fillRect(i * spacing + 30, 180 - barHeight, barWidth, barHeight);
-    ctx.fillStyle = "#000";
-    ctx.fillText(cat, i * spacing + 25, 195);
-  });
 }
