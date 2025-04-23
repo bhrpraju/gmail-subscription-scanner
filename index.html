@@ -1,32 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Gmail Subscription Scanner</title>
   <meta charset="UTF-8">
+  <title>Subscription Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script defer src="script.js"></script>
   <link rel="stylesheet" href="style.css">
+  <script defer src="script.js"></script>
 </head>
 <body>
-  <h1>📬 Gmail Subscription Scanner</h1>
-  <button onclick="signIn()">Sign in with Google</button>
-  <div id="summary">
-    <p><strong>Total Monthly Cost:</strong> <span id="totalCost">$0</span></p>
-    <button onclick="exportToCSV()">Export to CSV</button>
+  <div class="container">
+    <h1>📊 Gmail Subscription Dashboard</h1>
+    <button onclick="signIn()">🔐 Sign in with Google</button>
+
+    <div id="dashboard" style="display:none;">
+      <h2>Summary</h2>
+      <p><strong>Total Monthly Cost:</strong> <span id="total-cost">₹0</span></p>
+      <p><strong>Top 3 Costly Services:</strong></p>
+      <ul id="top-services"></ul>
+      <canvas id="category-chart" width="400" height="200"></canvas>
+
+      <input type="text" id="filter" placeholder="Filter services..." onkeyup="filterTable()">
+      <button onclick="exportToCSV()">Export CSV</button>
+      <table id="subscription-table">
+        <thead>
+          <tr>
+            <th>Service</th><th>Amount</th><th>Currency</th><th>Category</th><th>Tag</th><th>Notes</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
-  <input type="text" id="filterInput" onkeyup="filterTable()" placeholder="Filter by service...">
-  <table id="subscriptionTable">
-    <thead>
-      <tr>
-        <th>Service</th>
-        <th>Currency</th>
-        <th>Amount</th>
-        <th>Tag</th>
-        <th>Notes</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
 </body>
 </html>
