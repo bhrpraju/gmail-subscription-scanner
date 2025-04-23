@@ -1,18 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gmail Subscription Scanner</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="script.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>📬 Gmail Subscription Scanner</h1>
-    <button id="login-btn">Sign in with Google</button>
-    <div id="result" style="margin-top: 30px;"></div>
+  <h1>📬 Gmail Subscription Scanner</h1>
+  <button onclick="signIn()">Sign in with Google</button>
+  <div id="summary">
+    <p><strong>Total Monthly Cost:</strong> <span id="totalCost">$0</span></p>
+    <button onclick="exportToCSV()">Export to CSV</button>
   </div>
-  <script src="script.js"></script>
+  <input type="text" id="filterInput" onkeyup="filterTable()" placeholder="Filter by service...">
+  <table id="subscriptionTable">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Currency</th>
+        <th>Amount</th>
+        <th>Tag</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </body>
 </html>

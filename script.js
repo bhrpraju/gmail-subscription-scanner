@@ -1,56 +1,64 @@
+let subscriptions = [
+  { service: "Netflix", currency: "$", amount: 15, tag: "", notes: "" },
+  { service: "Spotify", currency: "$", amount: 10, tag: "", notes: "" },
+];
 
-const CLIENT_ID = "802518038033-c7ovg2vfmcuutcup44phb1qnc87fvkob.apps.googleusercontent.com";
-const REDIRECT_URI = "https://bhrpraju.github.io/gmail-subscription-scanner";
-const SCOPE = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email";
-const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest"];
-
-let tokenClient;
-
-document.getElementById("login-btn").addEventListener("click", () => {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPE,
-    callback: (tokenResponse) => {
-      if (tokenResponse.access_token) {
-        fetchSubscriptions(tokenResponse.access_token);
-      }
-    },
+function renderTable() {
+  const tbody = document.querySelector("#subscriptionTable tbody");
+  tbody.innerHTML = "";
+  let total = 0;
+  subscriptions.forEach((sub, index) => {
+    total += sub.amount;
+    const row = `<tr>
+      <td>${sub.service}</td>
+      <td>${sub.currency}</td>
+      <td>${sub.amount}</td>
+      <td><input value="${sub.tag}" onchange="updateTag(${index}, this.value)" /></td>
+      <td><input value="${sub.notes}" onchange="updateNotes(${index}, this.value)" /></td>
+      <td><button onclick="deleteRow(${index})">Delete</button></td>
+    </tr>`;
+    tbody.innerHTML += row;
   });
-  tokenClient.requestAccessToken();
-});
-
-function fetchSubscriptions(token) {
-  fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=subscription OR invoice OR receipt", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => res.json())
-    .then(async (data) => {
-      const messages = data.messages || [];
-      const results = [];
-      for (let msg of messages.slice(0, 15)) {
-        const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const msgData = await res.json();
-        const snippet = msgData.snippet || "";
-        const match = snippet.match(/([A-Za-z0-9\s]+)(₹|\$)([\d,\.]+)/);
-        if (match) {
-          results.push({ service: match[1].trim(), currency: match[2], amount: match[3] });
-        }
-      }
-      renderResults(results);
-    });
+  document.getElementById("totalCost").textContent = "$" + total.toFixed(2);
 }
 
-function renderResults(data) {
-  const div = document.getElementById("result");
-  if (!data.length) return (div.innerHTML = "<p>No subscriptions found.</p>");
-  let html = "<table><tr><th>Service</th><th>Currency</th><th>Amount</th></tr>";
-  data.forEach((item) => {
-    html += `<tr><td>${item.service}</td><td>${item.currency}</td><td>${item.amount}</td></tr>`;
-  });
-  html += "</table>";
-  div.innerHTML = html;
+function updateTag(index, value) {
+  subscriptions[index].tag = value;
 }
+
+function updateNotes(index, value) {
+  subscriptions[index].notes = value;
+}
+
+function deleteRow(index) {
+  subscriptions.splice(index, 1);
+  renderTable();
+}
+
+function filterTable() {
+  const input = document.getElementById("filterInput").value.toLowerCase();
+  const rows = document.querySelectorAll("#subscriptionTable tbody tr");
+  rows.forEach(row => {
+    const service = row.children[0].textContent.toLowerCase();
+    row.style.display = service.includes(input) ? "" : "none";
+  });
+}
+
+function exportToCSV() {
+  let csv = "Service,Currency,Amount,Tag,Notes\n";
+  subscriptions.forEach(sub => {
+    csv += `${sub.service},${sub.currency},${sub.amount},${sub.tag},${sub.notes}\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "subscriptions.csv";
+  a.click();
+}
+
+function signIn() {
+  alert("OAuth login placeholder");
+}
+
+document.addEventListener("DOMContentLoaded", renderTable);
